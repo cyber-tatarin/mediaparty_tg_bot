@@ -17,7 +17,7 @@ from aiogram.dispatcher.filters import Command, AdminFilter
 from root.logger.config import logger
 from root.db.setup import Session
 from root.db import models
-from . import keyboards, callback_data_models, utils
+from root.tg import keyboards, callback_data_models, utils
 
 logger = logger
 

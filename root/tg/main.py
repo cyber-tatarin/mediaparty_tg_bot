@@ -11,11 +11,13 @@ from aiogram.types import CallbackQuery
 from aiogram.utils.exceptions import ChatNotFound, RetryAfter
 from dotenv import load_dotenv, find_dotenv
 from sqlalchemy.exc import IntegrityError
+from aiogram.dispatcher.filters import ForwardedMessageFilter, ChatTypeFilter
+from aiogram.dispatcher.filters import Command, AdminFilter
 
 from root.logger.config import logger
 from root.db.setup import Session
 from root.db import models
-from . import keyboards, callback_data_models
+from . import keyboards, callback_data_models, utils
 
 logger = logger
 
@@ -52,6 +54,90 @@ async def create_ad(message: types.Message):
         await UserStates.sending_ad.set()
 
 
+# tasks = []
+#
+#
+# @dp.message_handler(ForwardedMessageFilter(is_forwarded=True) & ChatTypeFilter(types.ChatType.PRIVATE))
+# async def delete_ad_manually(message: types.Message):
+#     print('inside')
+#     global tasks
+#     print(tasks)
+#     current_task = asyncio.current_task()
+#     name = current_task.get_name()
+#     original_message_id = message.forward_from_message_id
+#     print(original_message_id)
+#
+#     tasks.append((current_task, original_message_id))
+#
+#     initial_tasks_num = len(tasks)
+#     await asyncio.sleep(2)
+#     result_tasks_num = len(tasks)
+#     if result_tasks_num > initial_tasks_num:
+#         print(tasks)
+#         current_task.cancel()
+#     else:
+#         try:
+#             for task in tasks:
+#                 await bot.delete_message(chat_id=chat_id, message_id=task[1])
+#         except Exception as x:
+#             print(x)
+#             return
+#         finally:
+#             tasks = []
+#
+#         await message.answer('Это сообщение похоже на рекламу. Если ты хочешь сделать какой-то анонс '
+#                              'или о чем-то попросить, напиши в наш бот @MediaPartyBot. Это займет 10 секунд'
+#                              'и пока бесплатно\n\n Если твое сообщение не рекламное, то прости меня и '
+#                              'нажми на кнопку под этим сообщением. Но не злоупотребляй моим доверием, '
+#                              'тебя могут за это выгнать...')
+    
+
+tasks = []
+
+
+# Reply handler to delete the pointed message
+@dp.message_handler(Command("del"), content_types=types.ContentTypes.ANY)
+async def delete_message(reply: types.Message, state: FSMContext):
+    global tasks
+    
+    task = asyncio.current_task()
+    tasks.append(task)
+    initial_tasks_len = len(tasks)
+    
+    # Get the original message to be deleted
+    message_to_delete = reply.reply_to_message
+    
+    await message_to_delete.delete()
+    await reply.delete()
+    
+    await asyncio.sleep(10)
+    
+    result_tasks_len = len(tasks)
+    
+    if result_tasks_len > initial_tasks_len:
+        task.cancel()
+    else:
+        message_text = message_to_delete.text
+        message_text_len = len(message_text)
+        
+        if message_text_len < 10:
+            snippet_message_len = int(message_text_len * 0.6)
+        elif message_text_len < 50:
+            snippet_message_len = int(message_text_len * 0.3)
+        elif message_text_len < 100:
+            snippet_message_len = int(message_text_len * 0.1)
+        elif message_text_len < 200:
+            snippet_message_len = int(message_text_len * 0.07)
+        else:
+            snippet_message_len = int(message_text_len * 0.03)
+    
+        message_snippet = message_text[:snippet_message_len]
+        username = message_to_delete.from_user.username
+        # Send the warning message
+        await bot.send_message(chat_id, f'@{username} Предупреждение за сообщение ({message_snippet}...)')
+        tasks = []
+    
+    
 @dp.message_handler(state=UserStates.sending_ad)
 async def forward_ad(message: types.Message, state: FSMContext):
     if message.chat.id != -936856228:
@@ -99,7 +185,7 @@ async def i_helped(callback_query: types.CallbackQuery):
                 new_user_points_obj = models.Points(tg_id=callback_query.from_user.id,
                                                     score=1)
                 session.add(new_user_points_obj)
-                
+            
             session.commit()
             likes_count += 1
             await callback_query.answer('Еее, так держать!')
@@ -121,24 +207,27 @@ last_3_incoming_messages = []
 
 @dp.message_handler(content_types=['any'])
 async def delete_ad(message: types.Message):
-    if message.chat.id == -936856228:
+    if message.chat.id == -936856228 and message.from_user.id != 762424943:
         global last_3_incoming_messages
         last_3_incoming_messages.append((message.from_user.id, message.message_id))
         if len(last_3_incoming_messages) > 3:
             last_3_incoming_messages.pop(0)
         
-        if message.text == 'реклама':
+        if message.photo or message.video:
+            text = message.caption
+        else:
+            text = message.text
+        
+        if utils.check_message_for_buzz_words(text):
             deleted_messages_ids = []
             for message_info_tuple in last_3_incoming_messages[::-1]:
-                print(message_info_tuple, '111111')
                 if message_info_tuple[0] == message.from_user.id:
-                    print(message_info_tuple[1], 'удаляем')
                     last_3_incoming_messages.remove(message_info_tuple)
-                    deleted_message_obj = await bot.copy_message(chat_id=459471362, from_chat_id=-936856228,
-                                                                 message_id=message_info_tuple[1])
+                    deleted_message_obj = await bot.forward_message(chat_id=459471362, from_chat_id=-936856228,
+                                                                    message_id=message_info_tuple[1])
                     await bot.delete_message(chat_id=-936856228, message_id=message_info_tuple[1])
                     deleted_messages_ids.append(str(deleted_message_obj.message_id))
-
+            
             print(deleted_messages_ids)
             deleted_messages_ids_str = '.'.join(deleted_messages_ids)
             await message.answer('Это сообщение похоже на рекламу. Если ты хочешь сделать какой-то анонс '
@@ -165,7 +254,7 @@ async def restore_message(callback_query: types.CallbackQuery, callback_data: di
         messages_ids = [int(x) for x in messages_ids.split('.')[::-1]]
         for message_id in messages_ids:
             print(message_id)
-            await bot.copy_message(chat_id=-936856228, from_chat_id=459471362, message_id=message_id)
+            await bot.forward_message(chat_id=-936856228, from_chat_id=459471362, message_id=message_id)
         await callback_query.answer('Сообщение восстановлено, извини еще раз:)', show_alert=True)
     else:
         await callback_query.answer('Ты не писал это сообщение, не обманывай меня!', show_alert=True)

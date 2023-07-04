@@ -284,6 +284,9 @@ async def send_and_copy_message(receiver_id, message, extra_message=None, reply_
     return copied_message
 
 
-if __name__ == '__main__':
-    with logger.catch():
-        executor.start_polling(dispatcher=dp, skip_updates=True)
+# if __name__ == '__main__':
+#     with logger.catch():
+#         executor.start_polling(dispatcher=dp, skip_updates=True)
+
+def execute_bot():
+    executor.start_polling(dispatcher=dp, skip_updates=True)

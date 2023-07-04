@@ -16,8 +16,8 @@ engine = create_engine(
 Session = sessionmaker(bind=engine)
 
 if __name__ == '__main__':
-    # models.UserPostLike.__table__.create(engine)
-    models.Points.__table__.create(engine)
+    models.UserPostLike.__table__.create(engine)
+    # models.Points.__table__.create(engine)
     
     # models.Notification.__table__.drop(engine)
     # models.Points.__table__.drop(engine)

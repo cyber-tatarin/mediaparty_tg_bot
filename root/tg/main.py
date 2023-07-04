@@ -23,7 +23,11 @@ logger = logger
 
 load_dotenv(os.path.join('root', '.env'))
 
-bot = Bot(os.getenv('TG_API'))
+proxy_url = "http://proxy.server:3128"
+
+bot = Bot(token=os.getenv('TG_API'), proxy=proxy_url)
+# bot = Bot(token=os.getenv('TG_API'))
+
 storage = MemoryStorage()
 
 dp = Dispatcher(bot=bot, storage=storage)

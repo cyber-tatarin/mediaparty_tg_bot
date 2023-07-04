@@ -21,7 +21,7 @@ from root.tg import keyboards, callback_data_models, utils
 
 logger = logger
 
-load_dotenv(find_dotenv())
+load_dotenv(os.path.join('root', '.env'))
 
 bot = Bot(os.getenv('TG_API'))
 storage = MemoryStorage()

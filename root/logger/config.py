@@ -3,7 +3,7 @@ import os
 import loguru
 from dotenv import load_dotenv, find_dotenv
 
-load_dotenv(find_dotenv())
+load_dotenv(os.path.join('root', '.env'))
 
 log_file_path = os.path.abspath(os.path.join('root', 'bot.log'))
 print(log_file_path)

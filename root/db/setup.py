@@ -6,7 +6,7 @@ from sqlalchemy.orm import sessionmaker
 from root.db import models
 from root.logger.config import logger
 
-load_dotenv(find_dotenv())
+load_dotenv(os.path.join('root', '.env'))
 logger = logger
 
 engine = create_engine(

@@ -1,10 +1,6 @@
 from sqlalchemy import Column, String, Boolean, Date, Integer
 from sqlalchemy.orm import DeclarativeBase
 
-from dotenv import load_dotenv, find_dotenv
-
-load_dotenv(find_dotenv())
-
 
 class Base(DeclarativeBase):
     pass

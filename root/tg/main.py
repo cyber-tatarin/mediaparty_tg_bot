@@ -24,7 +24,7 @@ bot = Bot(token=os.getenv('TG_API'), proxy=proxy_url)
 storage = MemoryStorage()
 dp = Dispatcher(bot=bot, storage=storage)
 
-managed_group_id = -936856228
+managed_group_id = -1001801674613
 admin_ids = [762424943, 459471362]
 
 

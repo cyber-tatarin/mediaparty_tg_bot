@@ -114,7 +114,10 @@ async def delete_message_manually(reply: types.Message):
             message_snippet = message_text[:snippet_message_len]
             username = message_to_delete.from_user.username
             # Send the warning message
-            await bot.send_message(managed_group_id, f'@{username} Предупреждение за сообщение ({message_snippet}...)')
+            await bot.send_message(managed_group_id, f'@{username} Ваше сообщение ({message_snippet}...) было удалено, '
+                                                     f'так как оно носит рекламный характер.'
+                                                     f'\n\nЕсли Вы хотите разместить это сообщение в нашем чате, '
+                                                     f'напишите, пожалуйста, в @MediaPartyBot')
             tasks = []
 
 
@@ -198,11 +201,10 @@ async def delete_ad(message: types.Message):
             
             print(deleted_messages_ids)
             deleted_messages_ids_str = '.'.join(deleted_messages_ids)
-            await message.answer('Это сообщение похоже на рекламу. Если ты хочешь сделать какой-то анонс '
-                                 'или о чем-то попросить, напиши в наш бот @MediaPartyBot. Это займет 10 секунд'
-                                 'и пока бесплатно\n\n Если твое сообщение не рекламное, то прости меня и '
-                                 'нажми на кнопку под этим сообщением. Но не злоупотребляй моим доверием, '
-                                 'тебя могут за это выгнать...',
+            await message.answer('Если Вы хотите сделать анонс '
+                                 'или рекламное объявление — напишите, пожалуйста, в наш бот @MediaPartyBot. '
+                                 '\n\nЕсли возникла ошибка и Ваше сообщение не рекламного характера, '
+                                 'нажмите кнопку "Восстановить сообщение"',
                                  reply_markup=keyboards.get_ikb_to_restore_message(
                                      deleted_messages_ids_str,
                                      message.from_user.username)
@@ -223,9 +225,9 @@ async def restore_message(callback_query: types.CallbackQuery, callback_data: di
         for message_id in messages_ids:
             print(message_id)
             await bot.forward_message(chat_id=managed_group_id, from_chat_id=459471362, message_id=message_id)
-        await callback_query.answer('Сообщение восстановлено, извини еще раз:)', show_alert=True)
+        await callback_query.answer('Сообщение восстановлено:)', show_alert=True)
     else:
-        await callback_query.answer('Ты не писал это сообщение, не обманывай меня!', show_alert=True)
+        await callback_query.answer('Bы не являетесь автором этого сообщения', show_alert=True)
 
 
 @dp.errors_handler(exception=RetryAfter)

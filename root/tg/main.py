@@ -25,7 +25,8 @@ storage = MemoryStorage()
 dp = Dispatcher(bot=bot, storage=storage)
 
 managed_group_id = -1001801674613
-admin_ids = [762424943, 459471362]
+# managed_group_id = -936856228
+admin_ids = [762424943, 459471362, 546006432]
 
 
 class UserStates(StatesGroup):
@@ -39,7 +40,7 @@ async def start(message: types.Message):
         user_is_member = await group_chat.get_member(message.from_user.id)
         if user_is_member:
             await message.answer('Добро пожаловать в бот MEDIA PARTY!\n\nПока что здесь можно только создать '
-                                 'объявление, которое попадет в наш общий чат. Чтобы это сделать, нажми '
+                                 'объявление, которое попадет в наш общий чат. Чтобы это сделать, нажмите '
                                  '\n-> /create_ad')
         else:
             await message.answer('Вы не состоите в нашей группе')
@@ -63,12 +64,12 @@ async def forward_ad(message: types.Message, state: FSMContext):
     if message.chat.id != managed_group_id:
         await message.forward(managed_group_id)
         await bot.send_message(managed_group_id,
-                               f'👆Объявление от {message.from_user.full_name} (@{message.from_user.username})'
-                               f'\n\nЕсли Вы помогли с объявлением, то нажмите на сердечко ниже',
+                               f'👆Объявление от {message.from_user.full_name} (@{message.from_user.username})\n\n'
+                               f'Если Вы помогли с объявлением, то нажмите на сердечко ниже',
                                reply_markup=keyboards.get_ikb_to_vote_after_helping(0))
         await state.finish()
-        await message.answer('Твое сообщение отправлено в группу! Чтобы создать еще одно объявление, '
-                             'нажми\n-> /create_ad')
+        await message.answer('Ваше сообщение отправлено в группу! Чтобы создать еще одно объявление, '
+                             'нажмите\n-> /create_ad')
 
 
 tasks = []
@@ -144,6 +145,9 @@ async def i_helped(callback_query: types.CallbackQuery):
             user_points_obj.score -= 1
             session.commit()
             likes_count -= 1
+            edited_message = utils.remove_name_from_message(callback_query.message.text,
+                                                            callback_query.from_user.full_name)
+            await callback_query.message.edit_text(edited_message)
             await callback_query.answer('Вы отменили действие')
         else:
             new_post_like_obj = models.UserPostLike(tg_id=callback_query.from_user.id,
@@ -159,6 +163,8 @@ async def i_helped(callback_query: types.CallbackQuery):
             
             session.commit()
             likes_count += 1
+            edited_message = utils.add_name_to_message(callback_query.message.text, callback_query.from_user.full_name)
+            await callback_query.message.edit_text(edited_message)
             await callback_query.answer('Еее, так держать!')
     except Exception as x:
         logger.exception(x)
@@ -253,6 +259,7 @@ async def send_and_copy_message(receiver_id, message, extra_message=None, reply_
 # if __name__ == '__main__':
 #     with logger.catch():
 #         executor.start_polling(dispatcher=dp, skip_updates=True)
+
 
 def execute_bot():
     executor.start_polling(dispatcher=dp, skip_updates=True)
